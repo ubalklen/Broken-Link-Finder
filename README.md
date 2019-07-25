@@ -20,6 +20,9 @@ Then, each found link is validate with [Requests](https://2.python-requests.org/
 A [single-thread script](https://github.com/ubalklen/Broken-Link-Finder/blob/master/find_broken_links_sync.py) is provided for benchmarking.
 
 # TODO
-Timeout
+* Timeout
+* Selenium driver parallelization
+* Proxy support
+* NTLM support
 
-Selenium driver parallelization
+
