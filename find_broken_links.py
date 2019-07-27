@@ -15,22 +15,33 @@ from selenium import webdriver
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-chrome_ua = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36'}
+chrome_ua = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36'}
 
 def validate(link):
+    (url, text) = link
+
     try:
-        url = link.get_attribute('href')
-        text = link.text.strip()
+        r_head = requests.head(url, headers=chrome_ua, allow_redirects=True, timeout=10)
 
+        if r_head.ok:
+            return (True, r_head.status_code, url, text, '')
+        
+        else:
+            try:
+                r_get = requests.get(url, headers=chrome_ua, allow_redirects=True, stream=True, timeout=10)
+                return (r_get.ok, r_get.status_code, url, text, '')
+            
+            except Exception as get_e:
+                return (False, 0, url, text, str(get_e))
+        
+    except Exception:
         try:
-            r = requests.get(url, headers=chrome_ua, allow_redirects=True, timeout=5, stream=True)
-            return (r.ok, r.status_code, url, text)
+            r_get = requests.get(url, headers=chrome_ua, allow_redirects=True, stream=True, timeout=10)
+            return (r_get.ok, r_get.status_code, url, text, '')
+            
+        except Exception as head_e:
+            return (False, 0, url, text, str(head_e))
 
-        except:
-            return (False, 0, url, text)
-
-    except:
-        return (False, 0, '', '')
 
 # Colorama setup
 colorama.init()
@@ -58,37 +69,35 @@ output_file = open(output_file_path, 'w')
 
 # We don't want to scan files (only web pages)
 do_not_scan = (
-               '#',
-               '.pdf',
-               '.doc',
-               '.docx',
-               '.xls',
-               '.xlsx',
-               '.ppt',
-               '.pptx',
-               '.doc',
-               '.docx',
-               '.odt',
-               '.ods',
-               '.jpg',
-               '.png',
-               '.zip',
-               '.rar',
-               )
+    '#',
+    '.pdf',
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.ppt',
+    '.pptx',
+    '.doc',
+    '.docx',
+    '.odt',
+    '.ods',
+    '.jpg',
+    '.png',
+    '.zip',
+    '.rar',
+    )
 
 # Also, we don't want to validate special links
 do_not_validate = (
-                 'javascript:',
-                 'mailto:',
-                 'tel:',
-                 )
+    'javascript:',
+    'mailto:',
+    'tel:',
+    )
 
 # Sets used to flag visited pages/requested URLs and avoid multiple scans/requests
 scanned_pages = {start_page}
 broken_urls =  set()
-''' Uncomment if you want to save good links too
-good_urls = set()
-'''
+ok_urls = set()
 
 # Webdriver setup
 options = webdriver.chrome.options.Options()
@@ -113,39 +122,33 @@ while not page_queue.empty():
 
     try:
         driver.get(page)
-        links_to_be_validated = []
+        links_to_be_validated = set()
         link_list = driver.find_elements_by_tag_name('a')
         
         for link in link_list:
-            link_text = link.text.strip()
             link_url = link.get_attribute('href')
+            link_text = link.text.strip()
 
-            # Check if link can be validated
-            if (
-                link_url and
+            # Check if link can or needed to be validated
+            if (link_url and
                 link_url.strip() and
-                not link_url.startswith(do_not_validate)
+                not link_url.startswith(do_not_validate) and
+                not link in ok_urls
                 ):
 
-                # Check if the link has already found out to be broken (noneed to validate again)
+                # Check if the link has already found out to be broken (it will not be validated again)
                 if link_url in broken_urls:
-                    print(colorama.Fore.RED + '\t' + str(link_url) + ' (' + link_text + '): Link found to be broken previously' + colorama.Style.RESET_ALL)
-                    
                     if not broken_link_found:
                         broken_link_found = True
                         no_broken_links = False
                         output_file.write('\n' + page + '\n')
                     
                     output_file.write('\t' + str(link_url) + ' (' + link_text + '): Link found to be broken previously' + '\n')
+                    print(colorama.Fore.RED + '\t' + str(link_url) + ' (' + link_text + '): Link found to be broken previously' + colorama.Style.RESET_ALL)
                 
-                # Uncomment if you want to save good links too
-                #elif link_url in good_urls:
-                #    print(colorama.Fore.GREEN + '\t' + str(link_url) + ' (' + link_text + '): Link found to be OK previously' + colorama.Style.RESET_ALL)
-                
-                
-                # Link can be validated and is not known to be broken, so put it on the list to be validated
+                # Link can be validated and is not known to be OK or broken, so put it on the list to be validated
                 else:
-                    links_to_be_validated.append(link)
+                    links_to_be_validated.add((link_url, link_text))
 
     except Exception as err:
             print(colorama.Fore.RED + 'Could not scan ' + page + colorama.Style.RESET_ALL)
@@ -156,39 +159,38 @@ while not page_queue.empty():
         req_futures = [executor.submit(validate, requestable_link) for requestable_link in links_to_be_validated]
 
         for req_future in as_completed(req_futures):
-            (req_ok, req_status_code, req_url, req_text) = req_future.result()
+            (req_ok, req_status_code, req_url, req_text, req_exception_text) = req_future.result()
 
             if req_ok:
-                ''' Uncomment if you want to save good links too
-                print(colorama.Fore.GREEN + '\t' + str(req_url) + ' (' + req_text + '): ' + str(req_status_code) + colorama.Style.RESET_ALL)
-                good_urls.add(req_url)
-                '''
+                ok_urls.add(req_url)
                 
                 # If link has the same hostname as the start page AND has not been already scanned, add to scan queue
                 req_parsed_uri = urlparse(req_url)
                 req_hostname = '{uri.scheme}://{uri.netloc}/'.format(uri=req_parsed_uri)
 
-                if (
-                    req_hostname == hostname and
+                if (req_hostname == hostname and
                     req_url not in scanned_pages and
-                    not req_url.endswith(do_not_scan)
-                    ):
-                    
-                    print(colorama.Fore.YELLOW + '\t' + req_url + ' added to scan queue' + colorama.Style.RESET_ALL)
+                    not req_url.endswith(do_not_scan)):                    
                     page_queue.put(req_url)
                     scanned_pages.add(req_url)
                     page_total = page_total + 1 
+                    print(colorama.Fore.YELLOW + '\t' + req_url + ' added to scan queue' + colorama.Style.RESET_ALL)
 
             # Broken link found
             else:
-                print(colorama.Fore.RED + '\t' + str(req_url) + ' (' + req_text + '): ' + str(req_status_code) + colorama.Style.RESET_ALL)
-                
                 if not broken_link_found:
                     broken_link_found = True
                     no_broken_links = False
                     output_file.write('\n' + page + '\n')
 
-                output_file.write('\t' + str(req_url) + ' (' + req_text + '): ' + str(req_status_code) + '\n')
+                if req_exception_text == '':
+                    print(colorama.Fore.RED + '\t' + str(req_url) + ' (' + req_text + '): ' + str(req_status_code) + colorama.Style.RESET_ALL)
+                    output_file.write('\t' + str(req_url) + ' (' + req_text + '): ' + str(req_status_code) + '\n')
+
+                else:
+                    print(colorama.Fore.RED + '\t' + str(req_url) + ' (' + req_text + '): ' + req_exception_text + colorama.Style.RESET_ALL)
+                    output_file.write('\t' + str(req_url) + ' (' + req_text + '): ' + req_exception_text + '\n')
+                
                 broken_urls.add(req_url)
 
 driver.quit()
