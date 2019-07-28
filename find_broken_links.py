@@ -65,7 +65,7 @@ datetime_string = start_time.strftime('%Y-%m-%d-%H-%M-%S')
 script_path = os.path.dirname(os.path.abspath(__file__))
 file_id = ''.join(['%s' % randint(0, 9) for digit in range(0, 6)])
 output_file_path = os.path.join(script_path, 'broken-links-' + datetime_string + '-' + file_id + '.txt')
-output_file = open(output_file_path, 'w')
+output_file = open(output_file_path, 'w', encoding='utf-8')
 
 # We don't want to scan files (only web pages)
 do_not_scan = (
