@@ -21,11 +21,9 @@ A [single-thread script](https://github.com/ubalklen/Broken-Link-Finder/blob/mas
 
 # TODO
 * Better exception handling
-* Validate links in other tags besides *<href a=...>* (like *<img src=...>*) 
+* Validate links in other tags besides `<href a=...>` (like `<img src=...>`) 
 * Timeout
 * Link depth limit
 * Proxy support
 * NTLM support
 * Selenium driver parallelization
-
-
