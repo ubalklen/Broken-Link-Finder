@@ -21,8 +21,9 @@ A [single-thread script](https://github.com/ubalklen/Broken-Link-Finder/blob/mas
 
 # TODO
 * Timeout
-* Selenium driver parallelization
+* Link depth limit
 * Proxy support
 * NTLM support
+* Selenium driver parallelization
 
 
