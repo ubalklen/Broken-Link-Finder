@@ -102,6 +102,7 @@ ok_urls = set()
 # Webdriver setup
 options = webdriver.chrome.options.Options()
 options.add_argument('--log-level=3') # minimal logging
+options.add_argument('--headless')
 driver_path = os.path.join(script_path, 'drivers', 'chromedriver.exe')
 driver = webdriver.Chrome(driver_path, options=options)
 driver.implicitly_wait = 1
