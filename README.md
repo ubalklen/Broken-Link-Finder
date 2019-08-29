@@ -17,6 +17,8 @@ The script scans pages using [Selenium](https://selenium-python.readthedocs.io/)
 
 Then, each found link is validate with [Requests](https://2.python-requests.org/) in a concurrent (multi-thread) fashion.
 
+If you don't care about rendering JavaScript, the [find_brtoken_links_req.py](https://github.com/ubalklen/Broken-Link-Finder/blob/master/find_broken_links_req.py) script doesn't use Selenium and thus is slightly faster.
+
 A [single-thread script](https://github.com/ubalklen/Broken-Link-Finder/blob/master/find_broken_links_sync.py) is provided for benchmarking.
 
 # TODO
