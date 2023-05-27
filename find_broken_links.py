@@ -15,7 +15,8 @@ from selenium import webdriver
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-chrome_ua = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36'}
+import chromedriver_autoinstaller
+chromedriver_autoinstaller.install()
 
 def validate(link):
     (url, text) = link
