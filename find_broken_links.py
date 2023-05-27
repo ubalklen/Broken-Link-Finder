@@ -17,19 +17,21 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import chromedriver_autoinstaller
 chromedriver_autoinstaller.install()
+req_kwargs = {"headers": chrome_ua, "timeout": 10, "verify": False}
 
 def validate(link):
     (url, text) = link
+    req_args = {"url": url} | req_kwargs
 
     try:
-        r_head = requests.head(url, headers=chrome_ua, allow_redirects=True, timeout=10)
+        r_head = requests.head(**req_args)
 
         if r_head.ok:
             return (True, r_head.status_code, url, text, '')
         
         else:
             try:
-                r_get = requests.get(url, headers=chrome_ua, allow_redirects=True, stream=True, timeout=10)
+                r_get = requests.get(**req_args)
                 return (r_get.ok, r_get.status_code, url, text, '')
             
             except Exception as get_e:
@@ -37,7 +39,7 @@ def validate(link):
         
     except Exception:
         try:
-            r_get = requests.get(url, headers=chrome_ua, allow_redirects=True, stream=True, timeout=10)
+            r_get = requests.get(**req_args)
             return (r_get.ok, r_get.status_code, url, text, '')
             
         except Exception as head_e:
